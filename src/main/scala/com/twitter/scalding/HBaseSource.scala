@@ -31,8 +31,10 @@ class HBaseSource(
   familyNames: Array[String],
   valueFields: Array[Fields]) extends Source {
 
-  override val hdfsScheme = new HBaseScheme(keyFields, familyNames, valueFields)
+  val hdfsScheme = new HBaseScheme(keyFields, familyNames, valueFields)
     .asInstanceOf[Scheme[JobConf, RecordReader[_, _], OutputCollector[_, _], _, _]]
+
+  // hdfsScheme does not override after 0.12.0
 
   override def createTap(readOrWrite: AccessMode)(implicit mode: Mode): Tap[_, _, _] = {
     val hBaseScheme = hdfsScheme match {
@@ -48,7 +50,9 @@ class HBaseSource(
           new HBaseTap(quorumNames, tableName, hBaseScheme, SinkMode.UPDATE)
         }
       }
-      case _ => super.createTap(readOrWrite)(mode)
+      case _ => throw new ClassCastException("Failed createding tap from non HDFS mode.") 
+      // does not work in scalding-core 0.12.0 onwards 
+      // case _ => super.createTap(readOrWrite)(mode)
     }
   }
 }
